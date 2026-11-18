@@ -1,0 +1,778 @@
+components:
+  schemas:
+    ConversationCreate:
+      properties:
+        title:
+          default: ''
+          maxLength: 200
+          title: Title
+          type: string
+      title: ConversationCreate
+      type: object
+    ConversationDetail:
+      properties:
+        created_at:
+          format: date-time
+          title: Created At
+          type: string
+        id:
+          title: Id
+          type: string
+        messages:
+          items:
+            $ref: '#/components/schemas/MessageOut'
+          title: Messages
+          type: array
+        pinned:
+          title: Pinned
+          type: boolean
+        title:
+          title: Title
+          type: string
+        updated_at:
+          format: date-time
+          title: Updated At
+          type: string
+      required:
+      - id
+      - title
+      - pinned
+      - created_at
+      - updated_at
+      - messages
+      title: ConversationDetail
+      type: object
+    ConversationOut:
+      properties:
+        created_at:
+          format: date-time
+          title: Created At
+          type: string
+        id:
+          title: Id
+          type: string
+        pinned:
+          title: Pinned
+          type: boolean
+        title:
+          title: Title
+          type: string
+        updated_at:
+          format: date-time
+          title: Updated At
+          type: string
+      required:
+      - id
+      - title
+      - pinned
+      - created_at
+      - updated_at
+      title: ConversationOut
+      type: object
+    ConversationPage:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/ConversationOut'
+          title: Items
+          type: array
+        next_cursor:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Next Cursor
+      required:
+      - items
+      title: ConversationPage
+      type: object
+    ConversationPatch:
+      properties:
+        pinned:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Pinned
+        title:
+          anyOf:
+          - maxLength: 200
+            type: string
+          - type: 'null'
+          title: Title
+      title: ConversationPatch
+      type: object
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          title: Detail
+          type: array
+      title: HTTPValidationError
+      type: object
+    LoginIn:
+      properties:
+        email:
+          format: email
+          title: Email
+          type: string
+        password:
+          maxLength: 200
+          minLength: 1
+          title: Password
+          type: string
+      required:
+      - email
+      - password
+      title: LoginIn
+      type: object
+    MessageIn:
+      properties:
+        model:
+          default: auto
+          maxLength: 32
+          title: Model
+          type: string
+        stream:
+          default: false
+          title: Stream
+          type: boolean
+        text:
+          maxLength: 8000
+          minLength: 1
+          title: Text
+          type: string
+      required:
+      - text
+      title: MessageIn
+      type: object
+    MessageOut:
+      properties:
+        created_at:
+          format: date-time
+          title: Created At
+          type: string
+        id:
+          title: Id
+          type: string
+        ordinal:
+          title: Ordinal
+          type: integer
+        role:
+          enum:
+          - user
+          - model
+          title: Role
+          type: string
+        text:
+          title: Text
+          type: string
+      required:
+      - id
+      - role
+      - text
+      - ordinal
+      - created_at
+      title: MessageOut
+      type: object
+    MessagePair:
+      properties:
+        model_message:
+          $ref: '#/components/schemas/MessageOut'
+        user_message:
+          $ref: '#/components/schemas/MessageOut'
+      required:
+      - user_message
+      - model_message
+      title: MessagePair
+      type: object
+    ModelOut:
+      properties:
+        description:
+          title: Description
+          type: string
+        id:
+          title: Id
+          type: string
+        label:
+          title: Label
+          type: string
+        locked:
+          default: false
+          title: Locked
+          type: boolean
+        thinking_levels:
+          default: []
+          items:
+            type: string
+          title: Thinking Levels
+          type: array
+      required:
+      - id
+      - label
+      - description
+      title: ModelOut
+      type: object
+    RegisterIn:
+      properties:
+        email:
+          format: email
+          title: Email
+          type: string
+        name:
+          maxLength: 120
+          minLength: 1
+          title: Name
+          type: string
+        password:
+          maxLength: 200
+          minLength: 8
+          title: Password
+          type: string
+      required:
+      - email
+      - password
+      - name
+      title: RegisterIn
+      type: object
+    SearchItem:
+      properties:
+        conversation_id:
+          title: Conversation Id
+          type: string
+        snippet:
+          title: Snippet
+          type: string
+        title:
+          title: Title
+          type: string
+        updated_at:
+          format: date-time
+          title: Updated At
+          type: string
+      required:
+      - conversation_id
+      - title
+      - snippet
+      - updated_at
+      title: SearchItem
+      type: object
+    SearchOut:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/SearchItem'
+          title: Items
+          type: array
+        query:
+          title: Query
+          type: string
+      required:
+      - query
+      - items
+      title: SearchOut
+      type: object
+    SettingsOut:
+      properties:
+        default_model:
+          title: Default Model
+          type: string
+        memory_enabled:
+          title: Memory Enabled
+          type: boolean
+        task_mode:
+          enum:
+          - chat
+          - task
+          title: Task Mode
+          type: string
+        theme:
+          enum:
+          - system
+          - light
+          - dark
+          title: Theme
+          type: string
+      required:
+      - theme
+      - default_model
+      - task_mode
+      - memory_enabled
+      title: SettingsOut
+      type: object
+    SettingsPatch:
+      properties:
+        default_model:
+          anyOf:
+          - maxLength: 32
+            type: string
+          - type: 'null'
+          title: Default Model
+        memory_enabled:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Memory Enabled
+        task_mode:
+          anyOf:
+          - enum:
+            - chat
+            - task
+            type: string
+          - type: 'null'
+          title: Task Mode
+        theme:
+          anyOf:
+          - enum:
+            - system
+            - light
+            - dark
+            type: string
+          - type: 'null'
+          title: Theme
+      title: SettingsPatch
+      type: object
+    TokenOut:
+      properties:
+        access_token:
+          title: Access Token
+          type: string
+        expires_in:
+          title: Expires In
+          type: integer
+        token_type:
+          const: bearer
+          default: bearer
+          title: Token Type
+          type: string
+        user:
+          $ref: '#/components/schemas/UserOut'
+      required:
+      - access_token
+      - expires_in
+      - user
+      title: TokenOut
+      type: object
+    UserOut:
+      properties:
+        created_at:
+          format: date-time
+          title: Created At
+          type: string
+        email:
+          title: Email
+          type: string
+        id:
+          title: Id
+          type: string
+        name:
+          title: Name
+          type: string
+      required:
+      - id
+      - email
+      - name
+      - created_at
+      title: UserOut
+      type: object
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          title: Location
+          type: array
+        msg:
+          title: Message
+          type: string
+        type:
+          title: Error Type
+          type: string
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
+      type: object
+info:
+  description: Clean-room implementation of the API the cloned front end needs. No endpoint here talks
+    to Google; replies are generated locally.
+  title: Gemini app backend (reconstructed)
+  version: 0.1.0
+  x-provenance: All operations are INFERRED from the cloned client's requirements; no original server
+    response was observed (see recon/00-scope.md).
+openapi: 3.1.0
+paths:
+  /v1/auth/register:
+    post:
+      operationId: register_v1_auth_register_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterIn'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenOut'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Register
+      tags:
+      - auth
+      x-provenance: INFERRED
+  /v1/auth/token:
+    post:
+      operationId: sign_in_v1_auth_token_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginIn'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenOut'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Sign In
+      tags:
+      - auth
+      x-provenance: INFERRED
+  /v1/conversations:
+    get:
+      operationId: list_conversations_v1_conversations_get
+      parameters:
+      - in: query
+        name: limit
+        required: false
+        schema:
+          default: 20
+          maximum: 100
+          minimum: 1
+          title: Limit
+          type: integer
+      - description: Offset cursor returned as next_cursor
+        in: query
+        name: cursor
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Offset cursor returned as next_cursor
+          title: Cursor
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConversationPage'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: List Conversations
+      tags:
+      - conversations
+      x-provenance: INFERRED
+    post:
+      operationId: create_conversation_v1_conversations_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConversationCreate'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConversationOut'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Create Conversation
+      tags:
+      - conversations
+      x-provenance: INFERRED
+  /v1/conversations/{conversation_id}:
+    delete:
+      operationId: delete_conversation_v1_conversations__conversation_id__delete
+      parameters:
+      - in: path
+        name: conversation_id
+        required: true
+        schema:
+          title: Conversation Id
+          type: string
+      responses:
+        '204':
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Delete Conversation
+      tags:
+      - conversations
+      x-provenance: INFERRED
+    get:
+      operationId: read_conversation_v1_conversations__conversation_id__get
+      parameters:
+      - in: path
+        name: conversation_id
+        required: true
+        schema:
+          title: Conversation Id
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConversationDetail'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Read Conversation
+      tags:
+      - conversations
+      x-provenance: INFERRED
+    patch:
+      operationId: patch_conversation_v1_conversations__conversation_id__patch
+      parameters:
+      - in: path
+        name: conversation_id
+        required: true
+        schema:
+          title: Conversation Id
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConversationPatch'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConversationOut'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Patch Conversation
+      tags:
+      - conversations
+      x-provenance: INFERRED
+  /v1/conversations/{conversation_id}/messages:
+    post:
+      operationId: post_message_v1_conversations__conversation_id__messages_post
+      parameters:
+      - in: path
+        name: conversation_id
+        required: true
+        schema:
+          title: Conversation Id
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MessageIn'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessagePair'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Post Message
+      tags:
+      - conversations
+      x-provenance: INFERRED
+  /v1/health:
+    get:
+      operationId: health_v1_health_get
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                title: Response Health V1 Health Get
+                type: object
+          description: Successful Response
+      summary: Health
+      tags:
+      - meta
+      x-provenance: INFERRED
+  /v1/me:
+    get:
+      operationId: read_me_v1_me_get
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserOut'
+          description: Successful Response
+      summary: Read Me
+      tags:
+      - auth
+      x-provenance: INFERRED
+  /v1/models:
+    get:
+      operationId: list_models_v1_models_get
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/ModelOut'
+                title: Response List Models V1 Models Get
+                type: array
+          description: Successful Response
+      summary: List Models
+      tags:
+      - meta
+      x-provenance: INFERRED
+  /v1/search:
+    get:
+      operationId: search_v1_search_get
+      parameters:
+      - in: query
+        name: q
+        required: true
+        schema:
+          maxLength: 200
+          minLength: 1
+          title: Q
+          type: string
+      - in: query
+        name: limit
+        required: false
+        schema:
+          default: 20
+          maximum: 50
+          minimum: 1
+          title: Limit
+          type: integer
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchOut'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Search
+      tags:
+      - conversations
+      x-provenance: INFERRED
+  /v1/settings:
+    get:
+      operationId: read_settings_v1_settings_get
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SettingsOut'
+          description: Successful Response
+      summary: Read Settings
+      tags:
+      - meta
+      x-provenance: INFERRED
+    patch:
+      operationId: patch_settings_v1_settings_patch
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SettingsPatch'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SettingsOut'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Patch Settings
+      tags:
+      - meta
+      x-provenance: INFERRED
+  /v1/suggestions:
+    get:
+      operationId: list_suggestions_v1_suggestions_get
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                items:
+                  type: string
+                title: Response List Suggestions V1 Suggestions Get
+                type: array
+          description: Successful Response
+      summary: List Suggestions
+      tags:
+      - meta
+      x-provenance: INFERRED

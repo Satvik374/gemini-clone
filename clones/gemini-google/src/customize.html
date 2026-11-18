@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Customize — AI assistant interface</title>
+<link rel="preload" href="assets/figtree-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="shell.css">
+</head>
+<body data-page="customize">
+<div id="shell"></div>
+
+<main class="main" id="main">
+  <div class="page">
+    <div class="tabs" role="tablist" aria-label="Customize">
+      <button class="tab is-on" type="button" role="tab" aria-selected="true">Discover</button>
+      <button class="tab" type="button" role="tab" aria-selected="false">Connectors</button>
+      <button class="tab" type="button" role="tab" aria-selected="false">Skills</button>
+    </div>
+
+    <h1 class="page__title">Customize Gemini</h1>
+    <p class="page__sub">Add apps and skills so Gemini can work smarter for you</p>
+
+    <h2 class="page__section">Everyday tools</h2>
+    <div class="skill-grid">
+      <div class="skill-card">
+        <div><strong>Drive files</strong><span>Search and summarize files in a connected drive.</span></div>
+        <button class="add-btn" type="button" aria-label="Add Drive files" aria-pressed="false">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+      </div>
+      <div class="skill-card">
+        <div><strong>Focus your energy</strong><span>Align your workload with your energy instead of your calendar.</span></div>
+        <button class="add-btn" type="button" aria-label="Add Focus your energy" aria-pressed="false">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+      </div>
+      <div class="skill-card">
+        <div><strong>Generate fresh ideas</strong><span>Turn existing content into five entirely new creative concepts.</span></div>
+        <button class="add-btn" type="button" aria-label="Add Generate fresh ideas" aria-pressed="false">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+      </div>
+      <div class="skill-card">
+        <div><strong>Get more perspectives</strong><span>Get three to five distinct takes on the same question.</span></div>
+        <button class="add-btn" type="button" aria-label="Add Get more perspectives" aria-pressed="false">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <h2 class="page__section">Business essentials</h2>
+    <div class="skill-grid">
+      <div class="skill-card">
+        <div><strong>Meeting notes</strong><span>Summarize a transcript into decisions and owners.</span></div>
+        <button class="add-btn" type="button" aria-label="Add Meeting notes" aria-pressed="false">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+      </div>
+      <div class="skill-card">
+        <div><strong>Inbox triage</strong><span>Sort the day's mail into what needs a reply and what doesn't.</span></div>
+        <button class="add-btn" type="button" aria-label="Add Inbox triage" aria-pressed="false">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script src="content.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

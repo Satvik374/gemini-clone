@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Images — AI assistant interface</title>
+<link rel="preload" href="assets/figtree-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="shell.css">
+</head>
+<body data-page="images">
+<div id="shell"></div>
+
+<main class="main" id="main">
+  <div class="page">
+    <div class="images-hero">
+      <h1 class="page__title">Create images</h1>
+      <p class="page__sub">Try a template or describe an idea in chat. Create with Nano Banana.</p>
+
+      <div class="templates">
+        <button class="template" type="button">Claw</button>
+        <button class="template" type="button">Neon</button>
+        <button class="template" type="button">Chibi</button>
+        <button class="template" type="button">Mug</button>
+        <button class="template" type="button">Headshot</button>
+        <button class="template" type="button">More</button>
+      </div>
+
+      <form class="composer" role="search" aria-label="Describe an image" style="margin:36px auto 0;">
+        <button class="icon-btn composer__plus" type="button" aria-label="Upload &amp; tools">
+          <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+        <label class="sr-only" for="img-prompt">Describe the image you want</label>
+        <input class="composer__input" id="img-prompt" type="text" placeholder="Describe the image you want" autocomplete="off">
+        <button class="mode-picker" type="button" aria-label="Open mode picker, currently Flash-Lite">
+          <span class="mode-picker__label">Flash-Lite</span>
+          <svg class="chev" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9.5l6 5.5 6-5.5"/></svg>
+        </button>
+      </form>
+
+      <div class="aspect-row">
+        <span>Aspect ratio</span>
+        <button class="chip is-on" type="button">1:1</button>
+        <button class="chip" type="button">3:4</button>
+        <button class="chip" type="button">4:3</button>
+        <button class="chip" type="button">16:9</button>
+      </div>
+    </div>
+
+    <h2 class="page__section">Try a template</h2>
+    <div class="card-grid">
+      <div class="info-card"><strong>Visualize anything</strong><span>Describe an idea in chat and pick a look.</span></div>
+      <div class="info-card"><strong>Refine with Gemini</strong><span>Ask Gemini to make changes to a result.</span></div>
+      <div class="info-card"><strong>Add a reference image</strong><span>Just add an image to get started.</span></div>
+    </div>
+  </div>
+</main>
+
+<script src="content.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

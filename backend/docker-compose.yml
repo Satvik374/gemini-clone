@@ -1,0 +1,29 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: gemini
+      POSTGRES_PASSWORD: gemini
+      POSTGRES_DB: gemini
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gemini -d gemini"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  api:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://gemini:gemini@db:5432/gemini
+      TOKEN_SECRET: ${TOKEN_SECRET:-dev-only-secret-change-me}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
+    ports:
+      - "8000:8000"
+
+volumes:
+  pgdata:
