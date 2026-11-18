@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Library — AI assistant interface</title>
+<link rel="preload" href="assets/figtree-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="shell.css">
+</head>
+<body data-page="library">
+<div id="shell"></div>
+
+<main class="main" id="main">
+  <div class="page">
+    <h1 class="page__title">Library</h1>
+
+    <h2 class="page__section">Documents</h2>
+    <div class="doc-grid">
+      <button class="doc-card" type="button">
+        <span class="doc-card__kind">code</span>
+        <span class="doc-card__name">Landing page copy</span>
+        <span class="doc-card__meta">Feb 28, 12:46 PM</span>
+      </button>
+      <button class="doc-card" type="button">
+        <span class="doc-card__kind">code</span>
+        <span class="doc-card__name">../app/routes.tsx</span>
+        <span class="doc-card__meta">Feb 28, 12:43 PM</span>
+      </button>
+      <button class="doc-card" type="button">
+        <span class="doc-card__kind">code</span>
+        <span class="doc-card__name">Design tokens</span>
+        <span class="doc-card__meta">Feb 28, 12:43 PM</span>
+      </button>
+    </div>
+
+    <h2 class="page__section">Media</h2>
+    <p class="empty">Images and videos you create show up here.</p>
+  </div>
+</main>
+
+<script src="content.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

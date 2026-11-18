@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI assistant interface — UI study</title>
+<link rel="preload" href="assets/figtree-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="shell.css">
+</head>
+<body data-page="home">
+<div id="shell"></div>
+
+<main class="main" id="main">
+  <div class="stage">
+    <div class="hero">
+      <span class="sparkle hero__sparkle" aria-hidden="true"></span>
+      <h1 class="hero__title">Where should we start?</h1>
+
+      <form class="composer" id="home-form" role="search" aria-label="Ask Gemini">
+        <button class="icon-btn composer__plus" type="button" aria-label="Upload &amp; tools">
+          <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+        <label class="sr-only" for="prompt">Ask Gemini</label>
+        <input class="composer__input" id="prompt" name="prompt" type="text" placeholder="Type @ for connectors, skills and more" autocomplete="off">
+        <button class="mode-picker" type="button" aria-label="Open mode picker, currently Flash-Lite">
+          <span class="mode-picker__label">Flash-Lite</span>
+          <svg class="chev" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9.5l6 5.5 6-5.5"/></svg>
+        </button>
+        <button class="icon-btn composer__mic" type="button" aria-label="Dictate">
+          <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0"/><path d="M12 18v3"/></svg>
+        </button>
+      </form>
+
+      <div class="segmented" role="tablist" aria-label="Mode">
+        <button class="segmented__item is-on" type="button" role="tab" aria-selected="true">Chat</button>
+        <button class="segmented__item" type="button" role="tab" aria-selected="false">Task</button>
+      </div>
+
+      <div class="suggestions">
+        <button class="suggestion" type="button" data-prompt="Design a poster based on my taste">
+          <span class="suggestion__icon">
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="currentColor"><path d="M12 3c.5 3.4 1.9 5 4.7 5.6-2.8.6-4.2 2.2-4.7 5.6-.5-3.4-1.9-5-4.7-5.6C10.1 8 11.5 6.4 12 3zM18 14c.3 1.9 1 2.8 2.6 3.1-1.6.3-2.3 1.2-2.6 3.1-.3-1.9-1-2.8-2.6-3.1 1.6-.3 2.3-1.2 2.6-3.1z"/></svg>
+          </span>
+          <span class="suggestion__text">Design a poster based on my taste</span>
+        </button>
+        <button class="suggestion" type="button" data-prompt="Check fall home maintenance tasks">
+          <span class="suggestion__icon">
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6H6a2 2 0 0 0-2 2v9"/><path d="M6 9l3-3M6 9l3 3"/></svg>
+          </span>
+          <span class="suggestion__text">Check fall home maintenance tasks</span>
+        </button>
+        <button class="suggestion" type="button" data-prompt="Quiz me on film and cinema">
+          <span class="suggestion__icon">
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M8 5v14M16 5v14M3 9.5h5M3 14.5h5M16 9.5h5M16 14.5h5"/></svg>
+          </span>
+          <span class="suggestion__text">Quiz me on film and cinema</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script src="content.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
