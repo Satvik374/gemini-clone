@@ -93,3 +93,66 @@ lawful to publish. Replace the wordmark, the sparkle mark, the greetings, the
 model names ("Flash-Lite", "3.5 Flash", "Nano Banana") and the legal strings —
 all of them live in `src/content.js` and the page bodies, so it is a single-file
 edit for the copy and one SVG for the mark.
+
+---
+
+# From replica to working app
+
+The seven pages now run against `backend/` instead of placeholder data. Nothing
+about the layout changed for its own sake: the same shell, composer and type scale
+are driven by the API.
+
+## What is real
+
+| Surface | Backed by |
+|---|---|
+| Sign in / create account | `POST /v1/auth/token`, `POST /v1/auth/register`, bearer token in `localStorage` |
+| Sidebar history | `GET /v1/conversations` (pinned first, then most recently updated) |
+| Open a chat | `GET /v1/conversations/{id}` |
+| Send a message | `POST /v1/conversations/{id}/messages` with `stream: true`; SSE `delta` frames are appended to the model turn, `done` ends it |
+| New chat | `POST /v1/conversations`, then the URL becomes `chat.html?c=…` |
+| Rename / pin / delete | `PATCH` and `DELETE` on the conversation |
+| Search panel | `GET /v1/search?q=` (titles and message bodies) |
+| Model picker + settings sheet | `GET /v1/models`, `GET/PATCH /v1/settings` (model, theme, memory persist per user) |
+| Sign out | token discarded, the sign-in screen returns |
+
+Still presentational on purpose: Images, Library, Scheduled and Customize are the
+clone's chrome — the backend has no endpoints for uploads, scheduled tasks or
+connectors, so those controls are inert rather than pretending to work.
+
+## Serving
+
+The backend mounts the front end at `/app`, so the app and its API share an origin
+and there is no CORS dance:
+
+```
+cd backend
+python -m scripts.migrate          # creates the schema and the demo account
+uvicorn app.main:app --port 8000   # http://127.0.0.1:8000/app/
+```
+
+Demo account: `demo@example.com` / `demo-password-1`. `docker compose up` runs the
+same service against PostgreSQL 16.
+
+## Responsive checks
+
+| width | result |
+|---|---|
+| 1440×900 | expanded 288px sidebar, centred composer 660px, history and settings sheet as measured |
+| 1024×768 | no horizontal overflow |
+| 768×1024 | rail hidden, hamburger + drawer with scrim, no horizontal overflow |
+| 390×844 | drawer, phone top bar (conversation title instead of the wordmark), composer 358px, no horizontal overflow |
+
+Fixed along the way, all found by driving the app rather than reading it: the
+settings sheet and search panel were covering the page because class rules beat
+the `hidden` attribute; the model label reverted after a settings write; the row
+menu closed on the click that opened it; the mobile drawer and search lost their
+listeners whenever the shell re-rendered (now only the sheet re-renders); and the
+chat page shipped canned demo turns that flashed before the API answered.
+
+## Verified
+
+Sign in → history loads → open a chat → send a prompt → 337-character streamed
+reply rendered → reload keeps both turns → rename, pin/unpin, search, model switch,
+theme switch (dark `#131314`), memory toggle, sign out → sign-in screen. Zero
+console errors on every page at 1440, 1024, 768 and 390. Backend suite: 16/16.

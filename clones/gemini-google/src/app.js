@@ -1,12 +1,25 @@
-/* Shared shell + interactions for every page.
-   One place for the sidebar, the top bar, the settings popover and the menus;
-   pages only ship their own main content. */
+/* Application shell and behaviour, driven by the API in /backend.
+
+   Load order: api.js -> content.js -> app.js. Every list on screen (history,
+   models, suggestions, settings) comes from the server; nothing is hard-coded
+   except labels and icons. */
 
 (function () {
   "use strict";
 
-  var C = window.CONTENT;
+  var C = window.CONTENT || {};
+  var Api = window.Api;
   var page = document.body.dataset.page || "home";
+
+  var state = {
+    user: null,
+    conversations: [],
+    models: [],
+    suggestions: [],
+    settings: null,
+    conversation: null,
+    streaming: false
+  };
 
   /* ------------------------------------------------------------- icon set */
   var ICONS = {
@@ -22,41 +35,31 @@
     panel: '<rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/>',
     close: '<path d="M6 6l12 12M18 6L6 18"/>',
     menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
-    filter: '<path d="M4 6h16l-6 7v6l-4-2v-4z"/>',
     dots: '<circle cx="5.5" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="18.5" cy="12" r="1.4" fill="currentColor" stroke="none"/>',
     chev: '<path d="M6 9.5l6 5.5 6-5.5"/>',
     chevR: '<path d="M9.5 6l5.5 6-5.5 6"/>',
-    down: '<path d="M12 3v11"/><path d="M8 10.5l4 4 4-4"/><path d="M4 18v1.5A1.5 1.5 0 0 0 5.5 21h13a1.5 1.5 0 0 0 1.5-1.5V18"/>',
     gear: '<circle cx="12" cy="12" r="3.2"/><path d="M19.4 14.2a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2v.2a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-2.9-1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0-1.2-2.9H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.2-2.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.7 1.7 0 0 0 10 3.6V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 2.9 1.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0 1.2 2.9h.2a2 2 0 0 1 0 4h-.2a1.7 1.7 0 0 0-1.5 1.1z"/>',
     sparkles: '<path d="M12 3c.5 3.4 1.9 5 4.7 5.6-2.8.6-4.2 2.2-4.7 5.6-.5-3.4-1.9-5-4.7-5.6C10.1 8 11.5 6.4 12 3z" fill="currentColor" stroke="none"/><path d="M18 14c.3 1.9 1 2.8 2.6 3.1-1.6.3-2.3 1.2-2.6 3.1-.3-1.9-1-2.8-2.6-3.1 1.6-.3 2.3-1.2 2.6-3.1z" fill="currentColor" stroke="none"/>',
     corner: '<path d="M9 6H6a2 2 0 0 0-2 2v9"/><path d="M6 9l3-3M6 9l3 3"/>',
     film: '<rect x="3" y="5" width="18" height="14" rx="3"/><path d="M8 5v14M16 5v14M3 9.5h5M3 14.5h5M16 9.5h5M16 14.5h5"/>',
     paperclip: '<path d="M20 11.5l-7.6 7.6a5 5 0 0 1-7-7l8-8a3.4 3.4 0 0 1 4.8 4.8l-8 8a1.8 1.8 0 0 1-2.6-2.6l7-7"/>',
-    drive: '<path d="M9 3h6l6 11h-6z"/><path d="M9 3L3 14l3 5h6L9 3z" /><path d="M6 19h12l-3-5H9z"/>',
+    drive: '<path d="M9 3h6l6 11h-6z"/><path d="M9 3L3 14l3 5h6L9 3z"/><path d="M6 19h12l-3-5H9z"/>',
     music: '<circle cx="7" cy="17" r="2.6"/><circle cx="18" cy="15" r="2.6"/><path d="M9.6 17V7l11-2v10"/>',
     canvas: '<rect x="3" y="4" width="18" height="16" rx="3"/><path d="M8 15l3-4 2.5 3L16 11l2 4z"/>',
     check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
     bulb: '<path d="M9 17h6"/><path d="M10 20h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9V17h7v-3.1A6 6 0 0 0 12 3z"/>',
-    mic: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0"/><path d="M12 18v3"/>',
     copy: '<rect x="8" y="8" width="12" height="12" rx="3"/><path d="M16 5.5A2.5 2.5 0 0 0 13.5 3H6a3 3 0 0 0-3 3v7.5A2.5 2.5 0 0 0 5.5 16"/>',
     edit: '<path d="M4 20h4L19 9a2.1 2.1 0 0 0-3-3L5 17v3z"/>',
     thumbUp: '<path d="M7 11v9H4v-9z"/><path d="M7 11l4-8a2 2 0 0 1 2 2v4h5a2 2 0 0 1 2 2.3l-1.2 6A2 2 0 0 1 16.8 20H7"/>',
     thumbDown: '<path d="M17 13V4h3v9z"/><path d="M17 13l-4 8a2 2 0 0 1-2-2v-4H6a2 2 0 0 1-2-2.3l1.2-6A2 2 0 0 1 7.2 4H17"/>',
     share: '<path d="M12 15V3"/><path d="M8 7l4-4 4 4"/><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/>',
-    refresh: '<path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4v5h-5"/>',
-    chart: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
-    upload: '<path d="M12 17V5"/><path d="M8 9l4-4 4 4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>',
-    user: '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5S20 17 20 21"/>',
-    gauge: '<path d="M4 18a8 8 0 1 1 16 0"/><path d="M12 18l4-5"/>',
-    cart: '<circle cx="9" cy="20" r="1.6"/><circle cx="18" cy="20" r="1.6"/><path d="M3 4h2l2.4 10.5A2 2 0 0 0 9.4 16h8.4a2 2 0 0 0 2-1.6L21 8H6"/>',
-    gem: '<path d="M12 3l7 5-7 13-7-13z"/><path d="M5 8h14"/>',
-    link: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7L11 7"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3A4 4 0 0 0 11 18.7L13 17"/>',
-    moon: '<path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/>',
     star: '<path d="M12 3l2.6 6.2 6.4.5-4.9 4.2 1.5 6.3L12 16.8 6.4 20.2l1.5-6.3L3 9.7l6.4-.5z"/>',
-    window: '<rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 9h18"/>',
-    rss: '<circle cx="6" cy="18" r="1.6"/><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 5a15 15 0 0 1 15 15"/>',
-    feedback: '<path d="M21 12a8 8 0 0 1-8 8H7l-4 3v-6a8 8 0 0 1 8-11h2a8 8 0 0 1 8 6z"/>',
-    help: '<circle cx="12" cy="12" r="9"/><path d="M9.6 9.5a2.5 2.5 0 1 1 3.4 2.3c-.7.3-1 .9-1 1.7"/><circle cx="12" cy="17" r="1" fill="currentColor" stroke="none"/>'
+    trash: '<path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/><path d="M10 11v6M14 11v6"/>',
+    sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19"/>',
+    moon: '<path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/>',
+    logout: '<path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"/><path d="M10 8l-4 4 4 4"/><path d="M6 12h10"/>',
+    gauge: '<path d="M4 18a8 8 0 1 1 16 0"/><path d="M12 18l4-5"/>',
+    pin: '<path d="M9 3h6l-1 6 3 3v2H7v-2l3-3z"/><path d="M12 14v7"/>'
   };
 
   function icon(name, size, cls) {
@@ -66,106 +69,287 @@
       'stroke-linecap="round" stroke-linejoin="round">' + path + "</svg>";
   }
 
-  /* ----------------------------------------------------------------- shell */
-  function navItem(item, active) {
-    return '<a class="side-row' + (active ? " is-current" : "") + '" href="' + item.href + '">' +
+  function escapeHtml(value) {
+    return String(value).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  function initials(name) {
+    var parts = String(name || "?").trim().split(/\s+/);
+    return ((parts[0] || "?")[0] + (parts.length > 1 ? parts[parts.length - 1][0] : "")).toUpperCase();
+  }
+
+  function toast(message) {
+    var box = document.getElementById("toast");
+    if (!box) {
+      box = document.createElement("div");
+      box.id = "toast";
+      box.className = "toast";
+      box.setAttribute("role", "status");
+      document.body.appendChild(box);
+    }
+    box.textContent = message;
+    box.classList.add("is-on");
+    clearTimeout(box._timer);
+    box._timer = setTimeout(function () { box.classList.remove("is-on"); }, 3600);
+  }
+
+  /* ----------------------------------------------------------------- auth */
+  var authMode = "signin";
+
+  function showAuth() {
+    if (document.getElementById("auth")) return;
+    document.body.classList.add("is-locked");
+    var el = document.createElement("div");
+    el.className = "auth";
+    el.id = "auth";
+    el.innerHTML =
+      '<div class="auth__card">' +
+        '<span class="sparkle auth__mark" aria-hidden="true"></span>' +
+        '<h1 class="auth__title" id="auth-title">Sign in</h1>' +
+        '<p class="auth__sub">Your chats are stored by this app’s own backend.</p>' +
+        '<form class="auth__form" id="auth-form" novalidate>' +
+          '<label class="auth__field" id="auth-name-field" hidden><span>Name</span>' +
+            '<input id="auth-name" type="text" autocomplete="name" placeholder="Your name"></label>' +
+          '<label class="auth__field"><span>Email</span>' +
+            '<input id="auth-email" type="email" autocomplete="username" required placeholder="you@example.com"></label>' +
+          '<label class="auth__field"><span>Password</span>' +
+            '<input id="auth-password" type="password" autocomplete="current-password" required placeholder="At least 8 characters"></label>' +
+          '<p class="auth__error" id="auth-error" role="alert" hidden></p>' +
+          '<button class="auth__submit" type="submit" id="auth-submit">Sign in</button>' +
+        "</form>" +
+        '<button class="auth__swap" type="button" id="auth-swap">Create an account instead</button>' +
+        '<p class="auth__hint">Demo account: demo@example.com / demo-password-1</p>' +
+      "</div>";
+    document.body.appendChild(el);
+
+    var form = document.getElementById("auth-form");
+    var errorBox = document.getElementById("auth-error");
+    var submit = document.getElementById("auth-submit");
+    var swap = document.getElementById("auth-swap");
+
+    swap.addEventListener("click", function () {
+      authMode = authMode === "signin" ? "register" : "signin";
+      var registering = authMode === "register";
+      document.getElementById("auth-name-field").hidden = !registering;
+      document.getElementById("auth-title").textContent = registering ? "Create an account" : "Sign in";
+      submit.textContent = registering ? "Create account" : "Sign in";
+      swap.textContent = registering ? "I already have an account" : "Create an account instead";
+      document.getElementById("auth-password").setAttribute("autocomplete", registering ? "new-password" : "current-password");
+      errorBox.hidden = true;
+    });
+
+    form.addEventListener("submit", async function (event) {
+      event.preventDefault();
+      errorBox.hidden = true;
+      var email = document.getElementById("auth-email").value.trim();
+      var password = document.getElementById("auth-password").value;
+      var name = document.getElementById("auth-name").value.trim();
+      submit.disabled = true;
+      try {
+        var result = authMode === "register"
+          ? await Api.register(email, password, name || email.split("@")[0])
+          : await Api.signIn(email, password);
+        Api.setToken(result.access_token);
+        window.location.href = "index.html";
+      } catch (error) {
+        errorBox.textContent = error.message;
+        errorBox.hidden = false;
+        submit.disabled = false;
+      }
+    });
+  }
+
+  /* ---------------------------------------------------------------- shell */
+  function navItem(item) {
+    return '<a class="side-row' + (item.id === page ? " is-current" : "") + '" href="' + item.href + '">' +
       '<span class="side-row__icon">' + icon(item.icon) + "</span>" +
       '<span class="side-row__label">' + item.label + "</span></a>";
+  }
+
+  function historyMarkup() {
+    if (!state.conversations.length) {
+      return '<p class="history-empty">No chats yet. Ask something to start one.</p>';
+    }
+    return state.conversations.map(function (convo) {
+      var current = state.conversation && state.conversation.id === convo.id;
+      return '<a class="history-row' + (current ? " is-current" : "") + '" href="chat.html?c=' +
+        encodeURIComponent(convo.id) + '" data-id="' + convo.id + '">' +
+        '<span class="history-row__label">' + escapeHtml(convo.title || "Untitled chat") + "</span>" +
+        (convo.pinned ? '<span class="history-row__pin">' + icon("pin", 14) + "</span>" : "") +
+        '<button class="icon-btn history-row__menu" type="button" aria-label="More options for ' +
+        escapeHtml(convo.title || "Untitled chat") + '" data-id="' + convo.id + '">' + icon("dots", 18) +
+        "</button></a>";
+    }).join("");
   }
 
   function renderShell() {
     var host = document.getElementById("shell");
     if (!host) return;
-
-    var history = C.history.items.map(function (h) {
-      return '<a class="history-row" href="chat.html">' +
-        '<span class="history-row__label">' + h.label + "</span>" +
-        '<button class="icon-btn history-row__menu" type="button" aria-label="More options for ' +
-        h.label + '">' + icon("dots", 18) + "</button></a>";
-    }).join("");
+    var user = state.user || { name: "Account", email: "" };
 
     host.innerHTML =
       '<aside class="sidebar" id="sidebar" aria-label="Side navigation">' +
         '<div class="sidebar__top">' +
           '<a class="brand" href="index.html" aria-label="Home">' +
             '<span class="sparkle brand__mark" aria-hidden="true"></span>' +
-            '<span class="brand__word">' + C.brand + "</span></a>" +
+            '<span class="brand__word">' + (C.brand || "Gemini") + "</span></a>" +
           '<button class="icon-btn icon-btn--sm" type="button" aria-label="Search chats" id="nav-search">' + icon("search", 20) + "</button>" +
           '<button class="icon-btn icon-btn--sm" type="button" aria-label="Close sidebar" id="nav-collapse">' + icon("panel", 20) + "</button>" +
           '<button class="icon-btn sidebar__close" type="button" aria-label="Close sidebar" id="nav-close">' + icon("close", 24) + "</button>" +
         "</div>" +
-        '<nav class="nav">' + C.nav.map(function (n) { return navItem(n, n.id === page); }).join("") + "</nav>" +
-        '<div class="side-section">' + C.notebooks.title + "</div>" +
-        '<div class="nav nav--tight">' + C.notebooks.items.map(function (n) { return navItem(n, false); }).join("") + "</div>" +
-        '<div class="side-section side-section--row"><span>' + C.history.title + "</span>" +
-          '<button class="icon-btn icon-btn--xs" type="button" aria-label="Filter">' + icon("filter", 16) + "</button></div>" +
-        '<div class="history">' + history + "</div>" +
+        '<nav class="nav">' + (C.nav || []).map(navItem).join("") + "</nav>" +
+        '<div class="side-section side-section--row"><span>' + ((C.history && C.history.title) || "History") + "</span>" +
+          '<button class="icon-btn icon-btn--xs" type="button" aria-label="New chat" id="nav-new">' + icon("plus", 16) + "</button></div>" +
+        '<div class="history" id="history">' + historyMarkup() + "</div>" +
         '<div class="side-account">' +
           '<button class="account-btn" type="button" id="account-open">' +
-            '<span class="avatar">' + C.account.initials + "</span>" +
-            '<span class="account-btn__name">' + C.account.name + "</span></button>" +
+            '<span class="avatar">' + escapeHtml(initials(user.name)) + "</span>" +
+            '<span class="account-btn__name">' + escapeHtml(user.name) + "</span></button>" +
           '<button class="icon-btn icon-btn--sm" type="button" aria-label="Settings" id="settings-open">' + icon("gear", 20) + "</button>" +
         "</div>" +
       "</aside>" +
       '<div class="scrim" id="scrim" hidden></div>' +
       '<button class="rail-open icon-btn" type="button" id="nav-rail-open" aria-label="Open sidebar">' + icon("menu", 24) + "</button>" +
-      '<header class="topbar topbar--desktop">' +
-        '<button class="pill pill--plain pill--sm" type="button">' + icon("down", 18) + "<span>" + C.topbar.getApp + "</span></button>" +
-        '<button class="pill pill--accent pill--sm" type="button">' + C.topbar.upgrade + "</button>" +
-        '<button class="icon-btn icon-btn--sm topbar__temp" type="button" aria-label="' + C.topbar.temporary + '">' + icon("dash", 20) + "</button>" +
-      "</header>" +
       '<header class="topbar topbar--mobile">' +
         '<button class="icon-btn topbar__menu" type="button" aria-label="Main menu" id="nav-open" aria-controls="sidebar" aria-expanded="false">' + icon("menu", 24) + "</button>" +
-        '<span class="topbar__brand">' + C.brand + "</span>" +
-        '<button class="topbar__mode" type="button"><span class="topbar__mode-label">' + C.home.model + "</span>" + icon("chev", 18, "chev") + "</button>" +
-        '<button class="pill pill--accent pill--sm topbar__signin" type="button">' + C.topbar.upgrade + "</button>" +
+        '<span class="topbar__brand">' + (C.brand || "Gemini") + "</span>" +
+        '<button class="topbar__mode mode-picker" type="button" aria-label="Choose model"><span class="topbar__mode-label mode-picker__label">' +
+          currentModelLabel() + "</span>" + icon("chev", 18, "chev") + "</button>" +
       "</header>" +
       settingsMarkup() +
       searchMarkup();
 
-    document.getElementById("nav-collapse").addEventListener("click", function () {
-      document.body.classList.toggle("nav-collapsed");
-    });
-    document.getElementById("nav-rail-open").addEventListener("click", function () {
+    wireShell();
+  }
+
+  function settingsMarkup() {
+    var user = state.user || { name: "Account", email: "" };
+    var theme = state.settings ? state.settings.theme : "system";
+    var model = state.settings ? state.settings.default_model : "auto";
+    var memory = state.settings ? state.settings.memory_enabled : true;
+    var modelLabel = (state.models.filter(function (m) { return m.id === model; })[0] || {}).label || "Auto";
+
+    var modelRows = state.models.map(function (m) {
+      return '<button class="menu-row' + (m.id === model ? " is-on" : "") + '" type="button" data-model="' + m.id + '">' +
+        icon(m.id === model ? "check" : "bulb", 18) + "<span>" + escapeHtml(m.label) + "</span>" +
+        (m.locked ? '<em class="menu-row__value">Paid</em>' : "") + "</button>";
+    }).join("");
+
+    return '<div class="sheet" id="settings-sheet" role="dialog" aria-label="Settings" hidden>' +
+      '<div class="sheet__head"><span class="avatar avatar--sm">' + escapeHtml(initials(user.name)) + "</span>" +
+        '<span class="sheet__name">' + escapeHtml(user.name) + "</span>" +
+        '<span class="sheet__mail">' + escapeHtml(user.email) + "</span></div>" +
+      '<div class="sheet__scroll">' +
+        '<div class="sheet__label">Model</div>' + modelRows +
+        '<div class="menu-divider"></div>' +
+        '<button class="menu-row" type="button" id="setting-theme">' + icon(theme === "dark" ? "moon" : "sun", 20) +
+          "<span>Theme</span><em class=\"menu-row__value\">" + theme + "</em></button>" +
+        '<button class="menu-row" type="button" id="setting-memory">' + icon("gauge", 20) +
+          "<span>Memory</span><em class=\"menu-row__value\">" + (memory ? "On" : "Off") + "</em></button>" +
+        '<div class="menu-divider"></div>' +
+        '<button class="menu-row menu-row--danger" type="button" id="setting-signout">' + icon("logout", 20) +
+          "<span>Sign out</span></button>" +
+      "</div>" +
+      '<div class="sheet__foot">Model in use: ' + escapeHtml(modelLabel) + "</div></div>";
+  }
+
+  function searchMarkup() {
+    return '<div class="search-panel" id="search-panel" role="dialog" aria-label="Search chats" hidden>' +
+      '<div class="search-panel__field">' + icon("search", 20) +
+        '<input id="search-input" type="search" placeholder="' + ((C.search || {}).placeholder || "Search chats") + '" aria-label="Search chats">' +
+        '<button class="icon-btn icon-btn--xs" type="button" aria-label="Close search" id="search-close">' + icon("close", 20) + "</button></div>" +
+      '<div class="search-panel__title">' + ((C.search || {}).recentsTitle || "Recents") + "</div>" +
+      '<div class="search-panel__rows" id="search-results"></div></div>';
+  }
+
+  function wireShell() {
+    var collapse = document.getElementById("nav-collapse");
+    if (collapse) collapse.addEventListener("click", function () { document.body.classList.toggle("nav-collapsed"); });
+    var rail = document.getElementById("nav-rail-open");
+    if (rail) rail.addEventListener("click", function () {
       document.body.classList.remove("nav-collapsed");
       document.getElementById("nav-collapse").focus();
     });
     document.getElementById("settings-open").addEventListener("click", function () { setSettings(true); });
     document.getElementById("account-open").addEventListener("click", function () { setSettings(true); });
+    var newChat = document.getElementById("nav-new");
+    if (newChat) newChat.addEventListener("click", function () { window.location.href = "index.html"; });
+    wireSettings();
+    wireShellControls();
   }
 
-  function settingsMarkup() {
-    var rows = C.settings.sections.map(function (s) {
-      return '<button class="menu-row' + (s.accent ? " menu-row--accent" : "") + '" type="button">' +
-        icon(s.icon, 20) + "<span>" + s.label + "</span></button>";
-    }).join("");
-    var foot = C.settings.footer.map(function (s) {
-      return '<button class="menu-row" type="button">' + icon(s.icon, 20) + "<span>" + s.label + "</span></button>";
-    }).join("");
-    return '<div class="sheet" id="settings-sheet" role="dialog" aria-label="Settings" hidden>' +
-      '<div class="sheet__head"><span class="avatar avatar--sm">' + C.account.initials + "</span>" +
-      '<span class="sheet__name">' + C.account.name + "</span></div>" +
-      '<div class="sheet__scroll">' + rows + '<div class="menu-divider"></div>' + foot + "</div>" +
-      '<div class="sheet__foot">' + C.settings.location + "</div></div>";
+  function wireSettings() {
+    var sheet = document.getElementById("settings-sheet");
+    sheet.querySelectorAll("[data-model]").forEach(function (row) {
+      row.addEventListener("click", async function () {
+        try {
+          state.settings = await Api.patchSettings({ default_model: row.dataset.model });
+          setSettings(false);
+          refreshSheet();
+          updateModelLabel();
+        } catch (error) { toast(error.message); }
+      });
+    });
+    document.getElementById("setting-theme").addEventListener("click", async function () {
+      var order = ["system", "light", "dark"];
+      var next = order[(order.indexOf(state.settings.theme) + 1) % order.length];
+      try {
+        state.settings = await Api.patchSettings({ theme: next });
+        applyTheme(next);
+        setSettings(false);
+        refreshSheet();
+        toast("Theme: " + next);
+      } catch (error) { toast(error.message); }
+    });
+    document.getElementById("setting-memory").addEventListener("click", async function () {
+      try {
+        state.settings = await Api.patchSettings({ memory_enabled: !state.settings.memory_enabled });
+        setSettings(false);
+        refreshSheet();
+        toast("Memory " + (state.settings.memory_enabled ? "on" : "off"));
+      } catch (error) { toast(error.message); }
+    });
+    document.getElementById("setting-signout").addEventListener("click", function () {
+      Api.clearToken();
+      window.location.href = "index.html";
+    });
   }
 
-  function searchMarkup() {
-    var rows = C.history.items.map(function (h) {
-      return '<a class="search-row" href="chat.html">' + icon("pen", 18) +
-        "<span>" + h.label + "</span><em>" + (h.meta || "") + "</em></a>";
-    }).join("");
-    return '<div class="search-panel" id="search-panel" role="dialog" aria-label="Search chats" hidden>' +
-      '<div class="search-panel__field">' + icon("search", 20) +
-      '<input id="search-input" type="search" placeholder="' + C.search.placeholder + '" aria-label="Search chats">' +
-      '<button class="icon-btn icon-btn--xs" type="button" aria-label="Close search" id="search-close">' + icon("close", 20) + "</button></div>" +
-      '<div class="search-panel__title">' + C.search.recentsTitle + "</div>" +
-      '<div class="search-panel__rows">' + rows + "</div></div>";
+  /* Re-render the shell in place, keeping the current scroll position. */
+  /* Only the sheet changes when a setting is written, so replace just that
+     node. Re-rendering the whole shell would strand the listeners bound to the
+     sidebar, the mobile menu and the search field. */
+  function refreshSheet() {
+    var current = document.getElementById("settings-sheet");
+    if (!current) return;
+    current.outerHTML = settingsMarkup();
+    wireSettings();
   }
 
-  /* ------------------------------------------------------------ behaviours */
+  function applyTheme(theme) {
+    document.documentElement.dataset.theme = theme;
+    var dark = theme === "dark" ||
+      (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+    document.documentElement.classList.toggle("theme-dark", dark);
+  }
+
+  function currentModelLabel() {
+    return (state.models.filter(function (m) {
+      return state.settings && m.id === state.settings.default_model;
+    })[0] || {}).label || "Auto";
+  }
+
+  function updateModelLabel() {
+    var label = currentModelLabel();
+    document.querySelectorAll(".mode-picker__label").forEach(function (node) { node.textContent = label; });
+  }
+
   function setSettings(open) {
     var sheet = document.getElementById("settings-sheet");
     var scrim = document.getElementById("scrim");
+    if (!sheet) return;
     sheet.hidden = !open;
     if (scrim) scrim.hidden = !open;
     if (open) {
@@ -178,12 +362,18 @@
     var panel = document.getElementById("search-panel");
     if (!panel) return;
     panel.hidden = !open;
-    if (open) document.getElementById("search-input").focus();
+    if (open) {
+      document.getElementById("search-input").focus();
+      renderSearchResults(state.conversations.map(function (c) {
+        return { conversation_id: c.id, title: c.title || "Untitled chat", snippet: "" };
+      }));
+    }
   }
 
   function setDrawer(open) {
     var sidebar = document.getElementById("sidebar");
     var scrim = document.getElementById("scrim");
+    if (!sidebar) return;
     sidebar.classList.toggle("is-open", open);
     if (scrim) scrim.hidden = !open;
     var btn = document.getElementById("nav-open");
@@ -191,38 +381,23 @@
     document.body.style.overflow = open ? "hidden" : "";
   }
 
-  function wireCommon() {
-    var scrim = document.getElementById("scrim");
-    if (scrim) scrim.addEventListener("click", function () {
-      setSettings(false); setDrawer(false); closeMenus();
-    });
-    document.addEventListener("keydown", function (e) {
-      if (e.key === "Escape") { setSettings(false); setDrawer(false); setSearch(false); closeMenus(); }
-    });
-    var open = document.getElementById("nav-open");
-    if (open) open.addEventListener("click", function () { setDrawer(true); });
-    var close = document.getElementById("nav-close");
-    if (close) close.addEventListener("click", function () { setDrawer(false); });
-    var search = document.getElementById("nav-search");
-    if (search) search.addEventListener("click", function () { setSearch(true); });
-    var searchClose = document.getElementById("search-close");
-    if (searchClose) searchClose.addEventListener("click", function () { setSearch(false); });
-
-    document.querySelectorAll(".history-row__menu").forEach(function (btn) {
-      btn.addEventListener("click", function (e) {
-        e.preventDefault(); e.stopPropagation();
-        openMenu(btn, [
-          { label: "Pin chat", icon: "star" },
-          { label: "Rename", icon: "edit" },
-          { label: "Move to notebook", icon: "note" },
-          { label: "Delete", icon: "close", danger: true }
-        ]);
-      });
-    });
+  function renderSearchResults(items) {
+    var box = document.getElementById("search-results");
+    if (!box) return;
+    if (!items.length) {
+      box.innerHTML = '<p class="search-empty">No chats found.</p>';
+      return;
+    }
+    box.innerHTML = items.map(function (item) {
+      return '<a class="search-row" href="chat.html?c=' + encodeURIComponent(item.conversation_id) + '">' +
+        icon("pen", 18) + "<span>" + escapeHtml(item.title) + "</span>" +
+        (item.snippet ? "<em>" + escapeHtml(item.snippet.slice(0, 60)) + "</em>" : "") + "</a>";
+    }).join("");
   }
 
-  /* --------------------------------------------------------------- popovers */
+  /* ------------------------------------------------------------- popovers */
   var currentMenu = null;
+
   function closeMenus() {
     if (currentMenu) { currentMenu.remove(); currentMenu = null; }
     document.querySelectorAll(".popover").forEach(function (p) { p.remove(); });
@@ -235,129 +410,334 @@
     box.setAttribute("role", "menu");
     box.innerHTML = html;
     document.body.appendChild(box);
-    var r = anchor.getBoundingClientRect();
-    var top = (opts && opts.above) ? r.top - box.offsetHeight - 8 : r.bottom + 8;
-    var left = Math.min(Math.max(8, r.left), window.innerWidth - box.offsetWidth - 8);
+    var rect = anchor.getBoundingClientRect();
+    var top = opts && opts.above ? rect.top - box.offsetHeight - 8 : rect.bottom + 8;
+    var left = Math.min(Math.max(8, rect.left), window.innerWidth - box.offsetWidth - 8);
     box.style.top = Math.max(8, top) + "px";
     box.style.left = left + "px";
     currentMenu = box;
     return box;
   }
 
-  function openMenu(anchor, rows) {
-    var html = rows.map(function (row) {
-      return '<button class="menu-row' + (row.danger ? " menu-row--danger" : "") + '" type="button">' +
-        icon(row.icon, 18) + "<span>" + row.label + "</span></button>";
-    }).join("");
-    var box = openPopover(anchor, html);
-    box.querySelectorAll("button").forEach(function (b) {
-      b.addEventListener("click", function () { closeMenus(); });
-    });
-  }
-
   function modelMenu(anchor) {
-    var rows = C.composer.models.map(function (m) {
-      return '<button class="model-row' + (m.active ? " is-active" : "") + '" type="button">' +
-        '<span class="model-row__mark">' + (m.active ? icon("check", 18) : icon(m.icon || "bulb", 18)) + "</span>" +
-        '<span class="model-row__body"><span class="model-row__label">' + m.label + "</span>" +
-        (m.hint ? '<span class="model-row__hint">' + m.hint + "</span>" : "") + "</span>" +
-        (m.submenu ? icon("chevR", 18, "chev") : "") + "</button>";
+    var active = state.settings ? state.settings.default_model : "auto";
+    var rows = state.models.map(function (model) {
+      return '<button class="model-row' + (model.id === active ? " is-active" : "") + '" type="button" data-model="' +
+        model.id + '"><span class="model-row__mark">' + icon(model.id === active ? "check" : "bulb", 18) + "</span>" +
+        '<span class="model-row__body"><span class="model-row__label">' + escapeHtml(model.label) + "</span>" +
+        (model.description ? '<span class="model-row__hint">' + escapeHtml(model.description) + "</span>" : "") +
+        "</span>" + (model.locked ? '<span class="lock">Paid</span>' : "") + "</button>";
     }).join("");
-    var box = openPopover(anchor, rows + '<div class="menu-divider"></div><div class="menu-hint">Switch model (^⇧M)</div>', { above: true });
-    box.querySelectorAll(".model-row").forEach(function (b, i) {
-      b.addEventListener("click", function () {
-        document.querySelectorAll(".mode-picker__label, .mode-picker [data-model]").forEach(function (l) {
-          l.textContent = C.composer.models[i].label;
-        });
+
+    var box = openPopover(anchor, rows, { above: true });
+    box.querySelectorAll("[data-model]").forEach(function (button) {
+      button.addEventListener("click", async function () {
+        try {
+          state.settings = await Api.patchSettings({ default_model: button.dataset.model });
+          updateModelLabel();
+        } catch (error) {
+          toast(error.message);
+        }
         closeMenus();
       });
     });
   }
 
   function toolsMenu(anchor) {
-    var rows = C.composer.tools.map(function (t) {
-      if (t.divider) return '<div class="menu-divider"></div>';
-      return '<button class="menu-row" type="button">' + icon(t.icon, 20) + "<span>" + t.label + "</span>" +
-        (t.locked ? '<span class="lock">' + icon("star", 14) + "</span>" : "") +
-        (t.submenu ? icon("chevR", 18, "chev") : "") + "</button>";
+    var rows = (C.composer && C.composer.tools ? C.composer.tools : []).map(function (tool) {
+      if (tool.divider) return '<div class="menu-divider"></div>';
+      return '<button class="menu-row" type="button" disabled>' + icon(tool.icon, 20) + "<span>" + tool.label + "</span>" +
+        (tool.locked ? '<span class="lock">Paid</span>' : "") + "</button>";
     }).join("");
-    openPopover(anchor, rows);
+    openPopover(anchor, rows + '<div class="menu-hint">Uploads are not part of this backend yet.</div>');
+  }
+
+  function historyMenu(anchor, conversation) {
+    var rows = [
+      { label: conversation.pinned ? "Unpin chat" : "Pin chat", icon: "pin", action: "pin" },
+      { label: "Rename", icon: "edit", action: "rename" },
+      { label: "Delete", icon: "trash", danger: true, action: "delete" }
+    ];
+    var html = rows.map(function (row) {
+      return '<button class="menu-row' + (row.danger ? " menu-row--danger" : "") + '" type="button" data-action="' +
+        row.action + '">' + icon(row.icon, 18) + "<span>" + row.label + "</span></button>";
+    }).join("");
+    var box = openPopover(anchor, html);
+    box.querySelectorAll("[data-action]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        var action = button.dataset.action;
+        closeMenus();
+        if (action === "pin") return togglePin(conversation);
+        if (action === "rename") return startRename(conversation);
+        if (action === "delete") return removeConversation(conversation);
+      });
+    });
+  }
+
+  async function togglePin(conversation) {
+    try {
+      await Api.patchConversation(conversation.id, { pinned: !conversation.pinned });
+      await refreshConversations();
+    } catch (error) { toast(error.message); }
+  }
+
+  function startRename(conversation) {
+    var row = document.querySelector('.history-row[data-id="' + conversation.id + '"]');
+    if (!row) return;
+    var label = row.querySelector(".history-row__label");
+    if (!label) return;
+    var input = document.createElement("input");
+    input.className = "history-rename";
+    input.value = conversation.title || "";
+    input.setAttribute("aria-label", "Rename chat");
+    label.replaceWith(input);
+    input.focus();
+    input.select();
+    var done = false;
+    async function commit(save) {
+      if (done) return;
+      done = true;
+      if (save) {
+        var title = input.value.trim();
+        if (title && title !== conversation.title) {
+          try {
+            await Api.patchConversation(conversation.id, { title: title });
+            await refreshConversations();
+            return;
+          } catch (error) { toast(error.message); }
+        }
+      }
+      if (state.conversation && state.conversation.id === conversation.id) renderTurns(state.conversation.messages);
+      refreshHistoryOnly();
+    }
+    input.addEventListener("keydown", function (event) {
+      if (event.key === "Enter") { event.preventDefault(); commit(true); }
+      if (event.key === "Escape") { event.preventDefault(); commit(false); }
+    });
+    input.addEventListener("blur", function () { commit(false); });
+  }
+
+  async function removeConversation(conversation) {
+    try {
+      await Api.deleteConversation(conversation.id);
+      await refreshConversations();
+      if (state.conversation && state.conversation.id === conversation.id) {
+        window.location.href = "index.html";
+      }
+    } catch (error) { toast(error.message); }
+  }
+
+  async function refreshConversations() {
+    try {
+      var pageData = await Api.listConversations();
+      state.conversations = pageData.items;
+      refreshHistoryOnly();
+    } catch (error) { toast(error.message); }
+  }
+
+  function refreshHistoryOnly() {
+    var box = document.getElementById("history");
+    if (box) box.innerHTML = historyMarkup();
+  }
+
+  /* ------------------------------------------------------------ behaviours */
+  /* Element listeners live here because the shell is re-rendered after a
+     settings change; binding them once in wireCommon would strand the new DOM. */
+  var commonWired = false;
+
+  function wireShellControls() {
+    var scrim = document.getElementById("scrim");
+    if (scrim) scrim.addEventListener("click", function () {
+      setSettings(false); setDrawer(false); closeMenus();
+    });
+    var open = document.getElementById("nav-open");
+    if (open) open.addEventListener("click", function () { setDrawer(true); });
+    var close = document.getElementById("nav-close");
+    if (close) close.addEventListener("click", function () { setDrawer(false); });
+    var search = document.getElementById("nav-search");
+    if (search) search.addEventListener("click", function () { setSearch(true); });
+    var searchClose = document.getElementById("search-close");
+    if (searchClose) searchClose.addEventListener("click", function () { setSearch(false); });
+
+    var input = document.getElementById("search-input");
+    if (input) {
+      var timer = null;
+      input.addEventListener("input", function () {
+        var query = input.value.trim();
+        clearTimeout(timer);
+        if (!query) {
+          renderSearchResults(state.conversations.map(function (c) {
+            return { conversation_id: c.id, title: c.title || "Untitled chat", snippet: "" };
+          }));
+          return;
+        }
+        timer = setTimeout(async function () {
+          try {
+            var result = await Api.search(query);
+            renderSearchResults(result.items);
+          } catch (error) { toast(error.message); }
+        }, 220);
+      });
+    }
+
+    if (commonWired) return;
+    commonWired = true;
+
+    document.addEventListener("keydown", function (event) {
+      if (event.key === "Escape") { setSettings(false); setDrawer(false); setSearch(false); closeMenus(); }
+    });
+
+    document.addEventListener("click", function (event) {
+      var button = event.target.closest(".history-row__menu");
+      if (!button) return;
+      event.preventDefault();
+      event.stopPropagation();
+      var conversation = state.conversations.filter(function (c) { return c.id === button.dataset.id; })[0];
+      if (conversation) historyMenu(button, conversation);
+    });
   }
 
   /* -------------------------------------------------------------- home page */
   function initHome() {
-    var chips = document.querySelectorAll(".suggestion");
-    chips.forEach(function (chip) {
+    var list = document.querySelector(".suggestions");
+    if (list && state.suggestions.length) {
+      var icons = ["sparkles", "corner", "film"];
+      list.innerHTML = state.suggestions.slice(0, 4).map(function (text, index) {
+        return '<button class="suggestion" type="button" data-prompt="' + escapeHtml(text) + '">' +
+          '<span class="suggestion__icon">' + icon(icons[index % icons.length], 20) + "</span>" +
+          '<span class="suggestion__text">' + escapeHtml(text) + "</span></button>";
+      }).join("");
+    }
+    document.querySelectorAll(".suggestion").forEach(function (chip) {
       chip.addEventListener("click", function () {
-        var q = chip.dataset.prompt || chip.textContent.trim();
-        window.location.href = "chat.html?q=" + encodeURIComponent(q);
-      });
-      var dismiss = chip.querySelector(".suggestion__dismiss");
-      if (dismiss) dismiss.addEventListener("click", function (e) {
-        e.stopPropagation(); chip.remove();
+        var query = chip.dataset.prompt || chip.textContent.trim();
+        window.location.href = "chat.html?q=" + encodeURIComponent(query);
       });
     });
     var modes = document.querySelectorAll(".segmented__item");
-    modes.forEach(function (m) {
-      m.addEventListener("click", function () {
-        modes.forEach(function (x) { x.classList.remove("is-on"); });
-        m.classList.add("is-on");
+    modes.forEach(function (mode) {
+      mode.addEventListener("click", function () {
+        modes.forEach(function (other) {
+          other.classList.remove("is-on");
+          other.setAttribute("aria-selected", "false");
+        });
+        mode.classList.add("is-on");
+        mode.setAttribute("aria-selected", "true");
       });
     });
   }
 
   /* -------------------------------------------------------------- chat page */
   function initChat() {
-    var q = new URLSearchParams(location.search).get("q");
-    if (q) {
-      appendTurn("user", q, true);
-      setTimeout(function () {
-        appendTurn("model", "Here's a first pass — tell me what to change and I'll refine it. (This clone has no model behind it; the reply is canned.)", false);
-      }, 700);
+    var turns = document.getElementById("turns");
+    if (turns) turns.innerHTML = "";
+    var params = new URLSearchParams(location.search);
+    var conversationId = params.get("c");
+    var query = params.get("q");
+
+    if (conversationId) {
+      loadConversation(conversationId).then(function () {
+        if (query) sendMessage(query);
+      });
+    } else if (query) {
+      sendMessage(query);
     }
+
     var form = document.getElementById("chat-form");
     if (!form) return;
-    form.addEventListener("submit", function (e) {
-      e.preventDefault();
+    form.addEventListener("submit", function (event) {
+      event.preventDefault();
       var input = document.getElementById("chat-input");
       var text = input.value.trim();
       if (!text) return;
       input.value = "";
-      appendTurn("user", text, false);
-      setTimeout(function () {
-        appendTurn("model", "Here's a first pass — tell me what to change and I'll refine it. (This clone has no model behind it; the reply is canned.)", false);
-      }, 700);
-    });
-    var more = document.querySelectorAll(".turn__more");
-    more.forEach(function (b) {
-      b.addEventListener("click", function () {
-        openMenu(b, [
-          { label: "Share", icon: "share" },
-          { label: "Export to Docs", icon: "note" },
-          { label: "Report legal issue", icon: "feedback" }
-        ]);
-      });
-    });
-    document.querySelectorAll(".turn__action").forEach(function (b) {
-      b.addEventListener("click", function () {
-        b.classList.toggle("is-on");
-      });
+      sendMessage(text);
     });
   }
 
-  function appendTurn(role, text, fromQuery) {
+  async function loadConversation(id) {
+    try {
+      var conversation = await Api.getConversation(id);
+      state.conversation = conversation;
+      var head = document.querySelector(".chat-head");
+      if (head) head.textContent = conversation.title || "Conversation";
+      document.title = (conversation.title || "Conversation") + " — AI assistant";
+      renderTurns(conversation.messages);
+      refreshHistoryOnly();
+    } catch (error) {
+      toast(error.message);
+      if (error.status === 404) window.location.href = "index.html";
+    }
+  }
+
+  function renderTurns(messages) {
     var list = document.getElementById("turns");
     if (!list) return;
+    list.innerHTML = "";
+    (messages || []).forEach(function (message) {
+      appendTurn(message.role, message.text);
+    });
+    scrollToBottom();
+  }
+
+  async function sendMessage(text) {
+    if (state.streaming) return;
+    state.streaming = true;
+
+    try {
+      if (!state.conversation) {
+        state.conversation = await Api.createConversation();
+        history.replaceState(null, "", "chat.html?c=" + state.conversation.id);
+      }
+      var conversationId = state.conversation.id;
+      appendTurn("user", text);
+      var modelTurn = appendTurn("model", "", true);
+      var textNode = modelTurn.querySelector(".turn__text");
+      var accumulated = "";
+
+      try {
+        await Api.streamMessage(conversationId, text, function (delta) {
+          accumulated += delta;
+          textNode.textContent = accumulated;
+          scrollToBottom();
+        });
+        if (!accumulated) textNode.textContent = "No reply was returned.";
+      } catch (error) {
+        textNode.textContent = "Could not reach the backend: " + error.message;
+        textNode.classList.add("turn__text--error");
+      }
+      modelTurn.classList.remove("is-typing");
+      await refreshConversations();
+      var head = document.querySelector(".chat-head");
+      var updated = state.conversations.filter(function (c) { return c.id === conversationId; })[0];
+      if (updated && head) {
+        head.textContent = updated.title;
+        state.conversation.title = updated.title;
+        document.title = updated.title + " — AI assistant";
+      }
+    } catch (error) {
+      toast(error.message);
+    } finally {
+      state.streaming = false;
+    }
+  }
+
+  function appendTurn(role, text, typing) {
+    var list = document.getElementById("turns");
+    if (!list) return null;
     var el = document.createElement("article");
-    el.className = "turn turn--" + role;
+    el.className = "turn turn--" + role + (typing ? " is-typing" : "");
     if (role === "user") {
       el.innerHTML = '<div class="turn__head"><span class="turn__label">You said</span>' +
         '<span class="turn__tools"><button class="icon-btn icon-btn--xs" type="button" aria-label="Copy prompt">' + icon("copy", 16) +
         '</button><button class="icon-btn icon-btn--xs" type="button" aria-label="Edit">' + icon("edit", 16) + "</button></span></div>" +
-        '<p class="turn__text">' + escapeHtml(text) + "</p>";
+        '<p class="turn__text"></p>';
+      el.querySelector(".turn__text").textContent = text;
+      var copy = el.querySelector('[aria-label="Copy prompt"]');
+      copy.addEventListener("click", function () { copyText(text, copy); });
     } else {
       el.innerHTML = '<div class="turn__head"><span class="turn__label">Gemini said</span></div>' +
-        '<p class="turn__text">' + escapeHtml(text) + "</p>" +
+        '<p class="turn__text"></p>' +
         '<div class="turn__actions">' +
         '<button class="icon-btn icon-btn--xs turn__action" type="button" aria-label="Copy">' + icon("copy", 18) + "</button>" +
         '<button class="icon-btn icon-btn--xs turn__action" type="button" aria-label="Good response">' + icon("thumbUp", 18) + "</button>" +
@@ -365,58 +745,47 @@
         '<button class="icon-btn icon-btn--xs turn__action" type="button" aria-label="Share">' + icon("share", 18) + "</button>" +
         '<button class="icon-btn icon-btn--xs turn__more" type="button" aria-label="More options">' + icon("dots", 18) + "</button>" +
         "</div>";
+      if (text) el.querySelector(".turn__text").textContent = text;
+      el.querySelectorAll(".turn__action").forEach(function (button) {
+        button.addEventListener("click", function () { button.classList.toggle("is-on"); });
+      });
+      el.querySelector('[aria-label="Copy"]').addEventListener("click", function (event) {
+        copyText(el.querySelector(".turn__text").textContent, event.currentTarget);
+      });
+      el.querySelector(".turn__more").addEventListener("click", function (event) {
+        openPopover(event.currentTarget, '<button class="menu-row" type="button" disabled>' + icon("share", 18) +
+          "<span>Sharing is not available yet</span></button>");
+      });
     }
-    if (fromQuery) { list.innerHTML = ""; }
     list.appendChild(el);
-    if (!fromQuery) {
-      var more = el.querySelector(".turn__more");
-      if (more) more.addEventListener("click", function () {
-        openMenu(more, [{ label: "Share", icon: "share" }, { label: "Export to Docs", icon: "note" }]);
-      });
-      el.querySelectorAll(".turn__action").forEach(function (b) {
-        b.addEventListener("click", function () { b.classList.toggle("is-on"); });
-      });
-    }
+    if (!typing) scrollToBottom();
+    return el;
+  }
+
+  function copyText(value, button) {
+    if (!navigator.clipboard) return;
+    navigator.clipboard.writeText(value).then(function () {
+      button.classList.add("is-on");
+      setTimeout(function () { button.classList.remove("is-on"); }, 1200);
+    });
+  }
+
+  function scrollToBottom() {
     window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
   }
 
-  function escapeHtml(s) {
-    return String(s).replace(/[&<>"']/g, function (c) {
-      return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c];
-    });
-  }
-
-  /* ---------------------------------------------------- composer / menus */
-  function wireComposer() {
-    var pickers = document.querySelectorAll(".mode-picker");
-    pickers.forEach(function (p) {
-      p.addEventListener("click", function () { modelMenu(p); });
-    });
-    var tools = document.querySelectorAll(".composer__plus");
-    tools.forEach(function (t) {
-      t.addEventListener("click", function () { toolsMenu(t); });
-    });
-    var form = document.getElementById("home-form");
-    if (form) form.addEventListener("submit", function (e) {
-      e.preventDefault();
-      var input = document.getElementById("prompt");
-      var q = input.value.trim();
-      window.location.href = "chat.html" + (q ? "?q=" + encodeURIComponent(q) : "");
-    });
-  }
-
-  /* ------------------------------------------------------------ page extras */
+  /* ----------------------------------------------------------- other pages */
   function initImages() {
-    document.querySelectorAll(".template").forEach(function (t) {
-      t.addEventListener("click", function () {
-        document.querySelectorAll(".template").forEach(function (x) { x.classList.remove("is-on"); });
-        t.classList.add("is-on");
+    document.querySelectorAll(".template").forEach(function (template) {
+      template.addEventListener("click", function () {
+        document.querySelectorAll(".template").forEach(function (other) { other.classList.remove("is-on"); });
+        template.classList.add("is-on");
       });
     });
-    document.querySelectorAll(".chip").forEach(function (c) {
-      c.addEventListener("click", function () {
-        c.parentElement.querySelectorAll(".chip").forEach(function (x) { x.classList.remove("is-on"); });
-        c.classList.add("is-on");
+    document.querySelectorAll(".chip").forEach(function (chip) {
+      chip.addEventListener("click", function () {
+        chip.parentElement.querySelectorAll(".chip").forEach(function (other) { other.classList.remove("is-on"); });
+        chip.classList.add("is-on");
       });
     });
   }
@@ -424,32 +793,88 @@
   function initCustomize() {
     document.querySelectorAll(".tab").forEach(function (tab) {
       tab.addEventListener("click", function () {
-        document.querySelectorAll(".tab").forEach(function (x) { x.classList.remove("is-on"); });
+        document.querySelectorAll(".tab").forEach(function (other) {
+          other.classList.remove("is-on");
+          other.setAttribute("aria-selected", "false");
+        });
         tab.classList.add("is-on");
+        tab.setAttribute("aria-selected", "true");
       });
     });
-    document.querySelectorAll(".add-btn").forEach(function (b) {
-      b.addEventListener("click", function () {
-        var on = b.classList.toggle("is-on");
-        b.setAttribute("aria-pressed", String(on));
-        b.innerHTML = on ? icon("check", 20) : icon("plus", 20);
+    document.querySelectorAll(".add-btn").forEach(function (button) {
+      button.addEventListener("click", function () {
+        var on = button.classList.toggle("is-on");
+        button.setAttribute("aria-pressed", String(on));
+        button.innerHTML = on ? icon("check", 20) : icon("plus", 20);
       });
     });
   }
 
-  /* ------------------------------------------------------------------- boot */
-  renderShell();
-  wireCommon();
-  wireComposer();
-  if (page === "home") initHome();
-  if (page === "chat") initChat();
-  if (page === "images") initImages();
-  if (page === "customize") initCustomize();
-
-  // collapsed rail: reopen with the panel button in the top bar
-  document.addEventListener("click", function (e) {
-    if (e.target.closest(".popover") === null && !e.target.closest(".mode-picker") && !e.target.closest(".composer__plus") && !e.target.closest(".history-row__menu")) {
-      closeMenus();
+  /* --------------------------------------------------- composer / menus */
+  function wireComposer() {
+    document.querySelectorAll(".mode-picker").forEach(function (picker) {
+      picker.addEventListener("click", function () { modelMenu(picker); });
+    });
+    document.querySelectorAll(".composer__plus").forEach(function (button) {
+      button.addEventListener("click", function () { toolsMenu(button); });
+    });
+    var homeForm = document.getElementById("home-form");
+    if (homeForm) {
+      homeForm.addEventListener("submit", function (event) {
+        event.preventDefault();
+        var value = document.getElementById("prompt").value.trim();
+        window.location.href = "chat.html" + (value ? "?q=" + encodeURIComponent(value) : "");
+      });
     }
-  });
+  }
+
+  /* ------------------------------------------------------------------- boot */
+  async function boot() {
+    if (!Api || !Api.token()) {
+      showAuth();
+      return;
+    }
+    try {
+      state.user = await Api.me();
+    } catch (error) {
+      if (error.status === 401) {
+        Api.clearToken();
+        showAuth();
+        return;
+      }
+      toast(error.message);
+    }
+
+    try {
+      var results = await Promise.all([Api.listConversations(), Api.models(), Api.settings(), Api.suggestions()]);
+      state.conversations = results[0].items;
+      state.models = results[1];
+      state.suggestions = results[3];
+      state.settings = results[2];
+    } catch (error) {
+      toast("Could not load your data: " + error.message);
+    }
+
+    if (state.settings) applyTheme(state.settings.theme);
+    renderShell();
+    wireComposer();
+    updateModelLabel();
+
+    if (page === "home") initHome();
+    if (page === "chat") initChat();
+    if (page === "images") initImages();
+    if (page === "customize") initCustomize();
+
+    document.addEventListener("click", function (event) {
+      if (event.target.closest(".popover") || event.target.closest(".mode-picker") ||
+          event.target.closest(".composer__plus") || event.target.closest(".history-row__menu")) return;
+      closeMenus();
+    });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", boot);
+  } else {
+    boot();
+  }
 })();

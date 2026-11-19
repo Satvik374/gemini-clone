@@ -2,11 +2,13 @@
 
 import os
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
 
 from .db import Base, SessionLocal, engine
 from .routers import auth, chats, meta
@@ -74,6 +76,14 @@ def create_app() -> FastAPI:
     app.include_router(auth.router)
     app.include_router(chats.router)
     app.include_router(meta.router)
+
+    front_end = Path(__file__).resolve().parents[2] / "clones" / "gemini-google" / "src"
+    if front_end.is_dir():
+        app.mount("/app", StaticFiles(directory=front_end, html=True), name="app")
+
+        @app.get("/", include_in_schema=False)
+        def index() -> RedirectResponse:
+            return RedirectResponse(url="/app/")
 
     return app
 

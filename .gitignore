@@ -172,3 +172,6 @@ backend/__pycache__/
 backend/**/__pycache__/
 *.pyc
 .pytest_cache/
+
+# Functional app verification screenshots (binary, not source)
+clones/gemini-google/shots/app/
